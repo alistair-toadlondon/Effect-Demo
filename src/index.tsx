@@ -1,84 +1,79 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DragDrop } from './DragDrop';
+import {useSpring, animated} from 'react-spring';
 import { SVG } from './SVG';
+import useSound from 'use-sound';
+import './demo.css';
+const yesMP3 = require('./assets/yes.mp3');
+const noMP3 = require('./assets/no.mp3');
 
 function App() {
-  interface DroppedItemState {
-    name: string;
-  }
-
-  var items = [
-    { name: 'FRONTAL_LOBE', size: { width: '264px', height: '239px' }, startPos: { X: '-380px', Y: '-200px' }, endPos: { X: '11px', Y: '20px' }, image: 'assets/frontal_lobe.svg', dropped: false },
-    { name: 'PARIETAL', size: { width: '137px', height: '118px' }, startPos: { X: '-380px', Y: '100px' }, endPos: { X: '233px', Y: '35px' }, image: 'assets/occipital_lobe.svg', dropped: false },
-    { name: 'TEMPORAL_LOBE', size: { width: '169px', height: '125px' }, startPos: { X: '-380px', Y: '350px' }, endPos: { X: '207px', Y: '142px' }, image: 'assets/temporal_lobe.svg', dropped: false },
-    { name: 'OCCIPITAL_LOBE', size: { width: '39px', height: '102px' }, startPos: { X: '-100px', Y: '-100px' }, endPos: { X: '365px', Y: '115px' }, image: 'assets/cerebelum.svg', dropped: false },
-    { name: 'CEREBELLUM', size: { width: '136px', height: '83px' }, startPos: { X: '-180px', Y: '100px' }, endPos: { X: '244px', Y: '218px' }, image: 'assets/medula.svg', dropped: false },
-    { name: 'BRAIN_STEM', size: { width: '77px', height: '123px' }, startPos: { X: '-130px', Y: '320px' }, endPos: { X: '188px', Y: '257px' }, image: 'assets/brain_stem.svg', dropped: false }
-  ];
-
-  const [lastDropped, setLastDropped] = React.useState('');
-  const itemDropped = (item: string) => {
-    setLastDropped(item);
-  }
-
+  const [status, setStatus/*, state, toggle*/] = React.useState('');
   const finished = () => {
     setTimeout(function () { alert('Finished'); }, 100);
   }
 
+  const win = () => {
+    playYes();
+    setStatus('win');
+  }
+
+  const loose = () => {
+    playNo();
+    setStatus('loose');
+  }
+
+  const counter = useSpring({ number: 1000000000, from: { number: 0 } });
+  const formatNumber = (num: any) => { return parseInt(num, 10); }
+
+  const { W } = useSpring({ from: { W: 0 }, W: status == 'win' ? 1 : 0, config: { duration: 1000 } });
+  const winningStyle = () => {
+    if (status == 'win') return {
+      transform: W
+      .interpolate({
+        range: [0, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 1],
+        output: [1, 0.97, 0.9, 1.1, 0.9, 1.1, 1.03, 1]
+      })
+      .interpolate(W => `scale(${W})`)
+    };
+    return {};
+  }
+
+  const { L } = useSpring({ from: { L: 0 }, L: status == 'loose' ? 1 : 0, config: { duration: 1000 } });
+  const losingStyle = () => {
+    if (status == 'loose') return {
+      transform: L
+      .interpolate({
+        range: [0, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 1],
+        output: [0, 40, 0, 40, 0, 40, 15, 0]
+      })
+      .interpolate(L => `translate3d(${L}px, 0px, 0px)`)
+    };
+    return {};
+  }
+
+  const [playYes] = useSound(yesMP3);
+  const [playNo] = useSound(noMP3);
+
   return (
     <div className="App">{/*1280 X 1024*/}
-      <DndProvider backend={HTML5Backend}>
-        <div style={{position: 'relative',  width: '1200px', height: '800px', margin: 'auto', border: '1px dashed #ccc'/*, background: 'url("' + require(`./assets/brain.svg`) + '") no-repeat center center'*/ }}>
-          <SVG name={'assets/brain.svg'} style={{ position: 'absolute', left: '393px', top: '208px', zIndex: 3 }} />
-
-          <DragDrop items={items} background={''} callback={itemDropped} finished={finished} />
-
-          <div className="infoBox blackText" style={{ display: ((lastDropped === 'FRONTAL_LOBE') ? 'block' : 'none'), background: '#b6a800' }}>
-            <div style={{ background: '#ffec00' }}>
-              <h2>Frontal Lobe</h2>
-              <p>This part of the brain is really important for thinking, memory and behaviour. It’s used for making decisions.</p>
-              <p>Would you rather read a book or go for a walk?</p>
-            </div>
+      <div className="container">
+        <animated.div style={losingStyle()}>
+          <div className="item" style={{ backgroundColor: status == 'loose' ? '#CF1322' : '' }} onClick={loose}>
+            <SVG name="assets/laptop.svg" style={{ width: '411px', height: '291px', margin: '47px 0 0 -14px' }} />
           </div>
-          <div className="infoBox whiteText" style={{ display: ((lastDropped === 'PARIETAL') ? 'block' : 'none'), background: '#961410' }}>
-            <div style={{ background: '#d41c17' }}>
-              <h2>Parietal</h2>
-              <p>This part makes sense of what we touch and taste, so it helps you know whether your dinner is yummy or yucky!</p>
-              <p>Find something smooth, find something rough and touch them at the same time. Your brain will help you notice the difference.</p>
-            </div>
+        </animated.div>
+        <animated.div style={winningStyle()}>
+          <div className="item" style={{ backgroundColor: status == 'win' ? '#89CE8C' : '' }} onClick={win}>
+            <SVG name="assets/brain_complete.svg" style={{ width: '415px', height: '384px', margin: '25px 0 0 -16px' }} />
           </div>
-          <div className="infoBox whiteText" style={{ display: ((lastDropped === 'TEMPORAL_LOBE') ? 'block' : 'none'), background: '#0070a0' }}>
-            <div style={{ background: '#009ee2' }}>
-              <h2>Temporal lobe</h2>
-              <p>This is really important for sound, speech and long-term memory. Next week when you are tried to remember what you learnt in CUES-Ed today, this part of your brain will be working very hard.</p>
-              <p>Have a think, who was your first teacher?</p>
-            </div>
-          </div>
-          <div className="infoBox blackText" style={{ display: ((lastDropped === 'OCCIPITAL_LOBE') ? 'block' : 'none'), background: '#688816' }}>
-            <div style={{ background: '#93c01f' }}>
-              <h2>Occipital Lobe</h2>
-              <p>This is in charge of processing information from your eyes, extremely quickly. It will be working very hard right now. Ever heard of the phrase ‘I’ve got eyes in the back of my head’?! This is where it comes from!</p>
-              <p>How many parts of the brain can you count?</p>
-            </div>
-          </div>
-          <div className="infoBox whiteText" style={{ display: ((lastDropped === 'CEREBELLUM') ? 'block' : 'none'), background: '#a30059' }}>
-            <div style={{ background: '#e5007e' }}>
-              <h2>Cerebellum</h2>
-              <p>This is in charge of balance and co-ordination.</p>
-              <p>Stand on one leg if you can. Can you tap your head with one hand and rubyour tummy with the other? Have a go. Swap. Was one side easier than the other?</p>
-            </div>
-          </div>
-          <div className="infoBox whiteText" style={{ display: ((lastDropped === 'BRAIN_STEM') ? 'block' : 'none'), background: '#a95900' }}>
-            <div style={{ background: '#ee7d00' }}>
-              <h2>Brain Stem</h2>
-              <p>The brain stem is in charge of breathing, heartbeat and temperature. It keeps you alive without you even having to think about it.</p>
-            </div>
-          </div>
-        </div>
-      </DndProvider>
+        </animated.div>
+      </div>
+      <div id="outcome" style={{ height: '10%' }}>
+        {/*<animated.span>{(counter.number)}</animated.span>*/}
+        {status == 'win' && ( 'Thats Correct!')}
+        {status == 'loose' && ( 'Try Again' )}
+      </div>
     </div>
   );
 }
